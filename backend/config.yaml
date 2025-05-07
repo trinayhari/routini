@@ -1,0 +1,95 @@
+# Server configuration
+server:
+  host: "0.0.0.0"
+  port: 8000
+  log_level: "info"
+
+# Model configuration
+models:
+  "openai/gpt-4":
+    pricing:
+      input: 0.03 # $0.03 per 1K tokens
+      output: 0.06 # $0.06 per 1K tokens
+    capabilities:
+      max_tokens: 8192
+      quality_score: 0.95
+      latency_score: 0.7
+
+  "openai/gpt-3.5-turbo":
+    pricing:
+      input: 0.0015 # $0.0015 per 1K tokens
+      output: 0.002 # $0.002 per 1K tokens
+    capabilities:
+      max_tokens: 4096
+      quality_score: 0.8
+      latency_score: 0.9
+
+  "anthropic/claude-3-opus":
+    pricing:
+      input: 0.015 # $0.015 per 1K tokens
+      output: 0.075 # $0.075 per 1K tokens
+    capabilities:
+      max_tokens: 200000
+      quality_score: 0.98
+      latency_score: 0.6
+
+  "anthropic/claude-3-sonnet":
+    pricing:
+      input: 0.003 # $0.003 per 1K tokens
+      output: 0.015 # $0.015 per 1K tokens
+    capabilities:
+      max_tokens: 200000
+      quality_score: 0.9
+      latency_score: 0.8
+
+  "anthropic/claude-3-haiku":
+    pricing:
+      input: 0.00025 # $0.00025 per 1K tokens
+      output: 0.00125 # $0.00125 per 1K tokens
+    capabilities:
+      max_tokens: 200000
+      quality_score: 0.85
+      latency_score: 0.95
+
+  "mistralai/mixtral-8x7b-instruct":
+    pricing:
+      input: 0.0007 # $0.0007 per 1K tokens
+      output: 0.0028 # $0.0028 per 1K tokens
+    capabilities:
+      max_tokens: 32768
+      quality_score: 0.88
+      latency_score: 0.85
+
+  "mistralai/mistral-7b-instruct":
+    pricing:
+      input: 0.0002 # $0.0002 per 1K tokens
+      output: 0.0008 # $0.0008 per 1K tokens
+    capabilities:
+      max_tokens: 8192
+      quality_score: 0.82
+      latency_score: 0.9
+
+  "meta-llama/llama-2-70b-chat":
+    pricing:
+      input: 0.0007 # $0.0007 per 1K tokens
+      output: 0.0028 # $0.0028 per 1K tokens
+    capabilities:
+      max_tokens: 4096
+      quality_score: 0.85
+      latency_score: 0.8
+
+# Routing configuration
+routing:
+  strategies:
+    cost:
+      weight_cost: 0.8
+      weight_quality: 0.1
+      weight_latency: 0.1
+    quality:
+      weight_cost: 0.1
+      weight_quality: 0.8
+      weight_latency: 0.1
+    balanced:
+      weight_cost: 0.33
+      weight_quality: 0.33
+      weight_latency: 0.34

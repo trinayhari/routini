@@ -1,0 +1,229 @@
+# OpenRouter LLM Configuration
+
+# Default model to use when no specific model is selected
+default_model: anthropic/claude-3-haiku
+
+# Optimization target for the advanced router
+# Options: "balanced", "speed", "cost", "quality"
+optimization_target: "balanced"
+
+# Model configurations
+models:
+  # Anthropic Models
+  anthropic/claude-3-haiku:
+    name: Claude 3 Haiku
+    description: Fast and efficient model for routine tasks
+    provider: Anthropic
+    strengths:
+      - Quick responses
+      - Cost-effective
+      - Reliable for simple tasks
+    pricing:
+      input: 0.00000125 # per 1K tokens
+      output: 0.00000625 # per 1K tokens
+    max_tokens: 4000
+    context_length: 200000
+    temperature: 0.7
+
+  anthropic/claude-3-sonnet:
+    name: Claude 3 Sonnet
+    description: Balanced model with strong reasoning and creativity
+    provider: Anthropic
+    strengths:
+      - Strong reasoning
+      - Creative writing
+      - Good context understanding
+    pricing:
+      input: 0.00003 # per 1K tokens
+      output: 0.00015 # per 1K tokens
+    max_tokens: 4000
+    context_length: 200000
+    temperature: 0.7
+
+  anthropic/claude-3-opus:
+    name: Claude 3 Opus
+    description: Most powerful model for complex tasks
+    provider: Anthropic
+    strengths:
+      - Deep reasoning
+      - Nuanced understanding
+      - Complex problem solving
+    pricing:
+      input: 0.00015 # per 1K tokens
+      output: 0.00075 # per 1K tokens
+    max_tokens: 4000
+    context_length: 200000
+    temperature: 0.7
+
+  # OpenAI Models
+  openai/gpt-4:
+    name: GPT-4
+    description: Latest OpenAI model with balanced capabilities
+    provider: OpenAI
+    strengths:
+      - Versatile
+      - Strong reasoning
+      - Good coding abilities
+    pricing:
+      input: 0.00001 # per 1K tokens
+      output: 0.00003 # per 1K tokens
+    max_tokens: 4000
+    context_length: 128000
+    temperature: 0.7
+
+  openai/gpt-3.5-turbo:
+    name: GPT-3.5 Turbo
+    description: Fast and cost-effective model
+    provider: OpenAI
+    strengths:
+      - Speed
+      - Cost efficiency
+      - General knowledge
+    pricing:
+      input: 0.000001 # per 1K tokens
+      output: 0.000002 # per 1K tokens
+    max_tokens: 4000
+    context_length: 16000
+    temperature: 0.7
+
+  # Mistral Models
+  mistralai/mistral-7b-instruct:
+    name: Mistral 7B
+    description: Compact and efficient open-source model
+    provider: Mistral AI
+    strengths:
+      - Fast inference
+      - Efficient resource usage
+      - Good general capabilities
+    pricing:
+      input: 0.0002 # per 1K tokens
+      output: 0.0002 # per 1K tokens
+    max_tokens: 4000
+    context_length: 8000
+    temperature: 0.7
+
+  mistralai/mixtral-8x7b-instruct:
+    name: Mixtral 8x7B
+    description: Powerful open-source mixture-of-experts model
+    provider: Mistral AI
+    strengths:
+      - Strong general capabilities
+      - Good reasoning
+      - Cost-effective compared to proprietary models
+    pricing:
+      input: 0.0006 # per 1K tokens
+      output: 0.0006 # per 1K tokens
+    max_tokens: 4000
+    context_length: 32000
+    temperature: 0.7
+
+  # Meta Models
+  meta-llama/llama-2-70b-chat:
+    name: Llama 2 70B
+    description: Meta's latest large language model
+    provider: Meta
+    strengths:
+      - Balanced performance
+      - Good general capabilities
+      - Open source
+    pricing:
+      input: 0.0009 # per 1K tokens
+      output: 0.0009 # per 1K tokens
+    max_tokens: 4000
+    context_length: 8000
+    temperature: 0.7
+
+# Prompt type configurations for routing
+prompt_types:
+  coding:
+    patterns:
+      - "\\bcode\\b"
+      - "\\bpython\\b"
+      - "\\bjavascript\\b"
+      - "\\bfunction\\b"
+      - "\\bclass\\b"
+      - "\\bimport\\b"
+      - "\\bdef\\b"
+    preferred_model: openai/gpt-4
+
+  creative:
+    patterns:
+      - "\\bwrite\\b.*\\bstory\\b"
+      - "\\bcreate\\b.*\\bpoem\\b"
+      - "\\bimagine\\b"
+      - "\\bcreative\\b"
+    preferred_model: anthropic/claude-3-sonnet
+
+  analysis:
+    patterns:
+      - "\\banalyze\\b"
+      - "\\bexplain\\b"
+      - "\\bcompare\\b"
+      - "\\bwhy\\b"
+      - "\\bexamine\\b"
+    preferred_model: anthropic/claude-3-opus
+
+  quick_questions:
+    patterns:
+      - "\\bwhat is\\b"
+      - "\\bhow to\\b"
+      - "\\bwhen\\b"
+      - "\\bwhere\\b"
+    preferred_model: anthropic/claude-3-haiku
+
+# Rule-based router settings for different prompt types and lengths
+# These settings determine which models to use based on the prompt type and length
+rule_based_router:
+  # Code prompt models
+  code_models:
+    short: openai/gpt-4 # Short code snippets (0-500 tokens)
+    medium: openai/gpt-4 # Medium code tasks (501-2000 tokens)
+    long: anthropic/claude-3-opus # Long/complex coding tasks (2001+ tokens)
+
+  # Summary prompt models
+  summary_models:
+    short: anthropic/claude-3-haiku # Quick summaries (0-500 tokens)
+    medium: anthropic/claude-3-sonnet # Medium-length summaries (501-2000 tokens)
+    long: anthropic/claude-3-opus # In-depth summaries (2001+ tokens)
+
+  # Question prompt models
+  question_models:
+    short: mistralai/mistral-7b-instruct # Quick questions (0-500 tokens)
+    medium: anthropic/claude-3-haiku # Medium complexity questions (501-2000 tokens)
+    long: anthropic/claude-3-sonnet # Complex questions (2001+ tokens)
+
+# Server settings
+server:
+  host: "0.0.0.0"
+  port: 8000
+  log_level: "info"
+  reload: true # Auto-reload on code changes (development)
+
+# API settings
+api:
+  use_mock: true # Set to false to use real API calls
+
+# OpenRouter API settings
+openrouter:
+  api_key: "" # Set your API key here or in .env file
+  base_url: "https://openrouter.ai/api/v1"
+  timeout: 30 # Request timeout in seconds
+  retries: 3 # Number of retry attempts
+
+# Routing strategies
+routing_strategies:
+  balanced:
+    description: "Balances cost, speed, and quality based on task type"
+    # Task-specific model assignments are handled in the model_selector.py code
+
+  cost:
+    description: "Optimizes for lowest cost per token"
+    default_model: "mistralai/mixtral-8x7b-instruct"
+
+  speed:
+    description: "Optimizes for fastest response time"
+    default_model: "anthropic/claude-3-haiku"
+
+  quality:
+    description: "Optimizes for highest quality responses"
+    default_model: "anthropic/claude-3-opus"

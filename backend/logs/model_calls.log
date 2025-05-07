@@ -1,0 +1,25 @@
+2025-05-06 21:11:10,380 - INFO - Created new CSV log file at logs/model_calls.csv
+2025-05-06 21:11:10,385 - INFO - Cost tracker initialized with session ID: 20250506211110
+2025-05-06 21:11:26,569 - INFO - Cost tracker initialized with session ID: 20250506211126
+2025-05-06 21:11:45,822 - INFO - Cost tracker initialized with session ID: 20250506211145
+2025-05-06 21:11:58,423 - INFO - Cost tracker initialized with session ID: 20250506211158
+2025-05-06 21:12:20,904 - INFO - Cost tracker initialized with session ID: 20250506211220
+2025-05-06 21:13:07,491 - INFO - Cost tracker initialized with session ID: 20250506211307
+2025-05-06 21:13:21,599 - INFO - Routing strategy set to: balanced
+2025-05-06 21:13:21,710 - INFO - Prompt classified as question (short), selected model: anthropic/claude-3-haiku
+2025-05-06 21:13:21,710 - INFO - Estimated prompt tokens: 5, max response tokens: 4000
+2025-05-06 21:13:21,711 - ERROR - Error sending prompt to anthropic/claude-3-haiku: cannot unpack non-iterable coroutine object
+2025-05-06 21:13:21,711 - ERROR - Model call: anthropic/claude-3-haiku | Type: unknown | Strategy: balanced | Tokens: 5 | Cost: $0.000000 | Latency: 0.00s | Success: False | Error: cannot unpack non-iterable coroutine object
+2025-05-06 21:13:29,827 - INFO - Routing strategy set to: balanced
+2025-05-06 21:13:29,827 - INFO - Prompt classified as question (short), selected model: anthropic/claude-3-haiku
+2025-05-06 21:13:29,827 - INFO - Estimated prompt tokens: 4, max response tokens: 4000
+2025-05-06 21:13:29,827 - ERROR - Error sending prompt to anthropic/claude-3-haiku: cannot unpack non-iterable coroutine object
+2025-05-06 21:13:29,827 - ERROR - Model call: anthropic/claude-3-haiku | Type: unknown | Strategy: balanced | Tokens: 4 | Cost: $0.000000 | Latency: 0.00s | Success: False | Error: cannot unpack non-iterable coroutine object
+2025-05-06 21:14:18,779 - INFO - Cost tracker initialized with session ID: 20250506211418
+2025-05-06 21:14:42,193 - INFO - Mock cost tracker initialized with session ID: mock_session
+2025-05-06 21:16:43,301 - INFO - Mock cost tracker initialized with session ID: mock_session
+2025-05-06 21:16:55,932 - INFO - Routing strategy set to: balanced
+2025-05-06 21:16:56,046 - INFO - Prompt classified as question (short), selected model: anthropic/claude-3-haiku
+2025-05-06 21:16:56,046 - INFO - Estimated prompt tokens: 3, max response tokens: 4000
+2025-05-06 21:16:56,049 - ERROR - Error sending prompt to anthropic/claude-3-haiku: cannot unpack non-iterable coroutine object
+2025-05-06 21:16:56,049 - ERROR - Model call: anthropic/claude-3-haiku | Type: unknown | Strategy: balanced | Tokens: 3 | Latency: 0.00s | Success: False | Error: cannot unpack non-iterable coroutine object

@@ -1,0 +1,4 @@
+timestamp,session_id,user_id,prompt_id,model_id,prompt_type,length_category,strategy,manual_selection,token_count,prompt_tokens,completion_tokens,latency,cost,success,error_type,query
+2025-05-06T21:13:21.711822,12b28e5d-07c1-4847-9048-7ed081ef8e98,,95747c18-2b78-415d-845e-ec2951076aae,anthropic/claude-3-haiku,unknown,,balanced,False,5,5,0,0.00125,0,False,cannot unpack non-iterable coroutine object,What is your name?
+2025-05-06T21:13:29.827964,12b28e5d-07c1-4847-9048-7ed081ef8e98,,b7e53c3e-3dcd-4bb3-8bce-a832f78b0c02,anthropic/claude-3-haiku,unknown,,balanced,False,4,4,0,3.1e-05,0,False,cannot unpack non-iterable coroutine object,"is this working?
+"
