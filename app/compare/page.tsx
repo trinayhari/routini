@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CompareResponse, ModelComparison } from "@/types";
+import { CompareResponse, ModelComparison, RoutingStrategy } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, RefreshCw } from "lucide-react";
@@ -73,7 +73,18 @@ const DEFAULT_MODELS = [
   "mistralai/mixtral-8x7b-instruct",
 ];
 
-export default function ComparePage() {
+// Add interface for component props
+interface ComparePageProps {
+  strategy?: RoutingStrategy;
+  developerMode?: boolean;
+  onMessagesUpdate?: (messages: any[]) => void;
+}
+
+export default function ComparePage({
+  strategy,
+  developerMode,
+  onMessagesUpdate,
+}: ComparePageProps) {
   const [prompt, setPrompt] = useState("");
   const [results, setResults] = useState<ModelComparison[] | null>(null);
   const [loading, setLoading] = useState(false);

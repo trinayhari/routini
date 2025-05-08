@@ -1,0 +1,16 @@
+{
+  "timestamp": "2025-05-07T22:33:04.826271",
+  "prompt": "What are the pros and cons of nuclear fusion as a long term energy source?",
+  "model_selected": "anthropic/claude-3-sonnet",
+  "prompt_type": "question",
+  "length_category": "short",
+  "token_count": 18,
+  "strategy": "quality",
+  "user_requested": false,
+  "classification_details": {
+    "method": "question_structure",
+    "is_question": true,
+    "confidence": "medium"
+  },
+  "selection_reason": "Selected anthropic/claude-3-sonnet for quality optimization with question task"
+}

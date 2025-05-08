@@ -3,7 +3,7 @@ import {
   RoutingStrategy, 
   ModelComparison, 
   RoutingTrace,
-  ResponseMetadata
+  ModelMetadata
 } from '@/types';
 
 // Sample model configurations
@@ -162,7 +162,7 @@ export function generateModelMetadata(
   model: string, 
   promptLength: number,
   responseLength: number
-): ResponseMetadata {
+): ModelMetadata {
   const modelInfo = MODELS[model as keyof typeof MODELS];
   const promptTokens = Math.floor(promptLength / 4) + 10;
   const completionTokens = Math.floor(responseLength / 4) + 20;

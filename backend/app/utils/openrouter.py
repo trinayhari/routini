@@ -15,6 +15,10 @@ import yaml
 import tiktoken
 from typing import Dict, Any, List, Optional, Tuple, Union
 from dotenv import load_dotenv
+from random import uniform
+
+# Import error handling
+from .error_handler import APIError, NetworkError, AuthenticationError, RateLimitError, ModelError, UnknownAPIError, classify_http_error
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -29,6 +33,7 @@ OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
 DEFAULT_TIMEOUT = 30  # seconds
 MAX_RETRIES = 3
 RETRY_DELAY = 2  # seconds
+BACKOFF_FACTOR = 1.5  # exponential backoff multiplier
 # Use environment variable to control mock mode, default to false if not set
 USE_MOCK = os.getenv("USE_MOCK", "false").lower() == "true"
 
@@ -43,6 +48,39 @@ MODEL_ENCODINGS = {
     "mistralai/mistral-7b-instruct": "cl100k_base",
     "meta-llama/llama-2-70b-chat": "cl100k_base",  # Llama 2 uses cl100k_base
 }
+
+# Add a global client with a session pool for better connection reuse
+_http_client = None
+
+# Track request count to recreate the client periodically
+_request_count = 0
+_max_requests_per_client = 5  # Recreate client after this many requests
+
+async def get_http_client():
+    """Get or create a shared HTTP client with a connection pool"""
+    global _http_client, _request_count
+    
+    # Create a new client if needed
+    if _http_client is None or _request_count >= _max_requests_per_client:
+        # Close existing client if it exists
+        if _http_client is not None:
+            logger.info(f"Closing and recreating HTTP client after {_request_count} requests")
+            await _http_client.aclose()
+        
+        # Create new client
+        _http_client = httpx.AsyncClient(
+            timeout=DEFAULT_TIMEOUT,
+            limits=httpx.Limits(max_connections=10, max_keepalive_connections=5)
+        )
+        _request_count = 0
+    
+    # Increment request count
+    _request_count += 1
+    
+    return _http_client
+
+# Add a tracking variable for last request time to help with rate limits
+_last_request_time = 0
 
 def count_tokens(text: str, model: str) -> int:
     """
@@ -75,12 +113,13 @@ CAPITAL_FRANCE_RESPONSES = {
 async def send_request(
     model: str,
     prompt: str = None,
-    messages: List[Dict[str, str]] = None,
+    messages: List[Dict[str, Any]] = None,
     max_tokens: int = 1024,
     temperature: float = 0.7,
     timeout: int = DEFAULT_TIMEOUT,
     retry_attempts: int = MAX_RETRIES,
-    retry_delay: int = RETRY_DELAY
+    retry_delay: int = RETRY_DELAY,
+    debug_mode: bool = False
 ) -> Union[Tuple[str, Dict[str, Any], float], Dict[str, Any]]:
     """
     Send a request to the OpenRouter API with retry logic and timeout handling.
@@ -94,19 +133,32 @@ async def send_request(
         timeout: Request timeout in seconds
         retry_attempts: Maximum number of retry attempts
         retry_delay: Delay between retries in seconds
+        debug_mode: Whether to log full response contents for debugging
         
     Returns:
         Tuple of (response_text, usage_stats, latency) or error dict
     """
+    global _last_request_time
+    
     # Start timing for latency measurement
     start_time = time.time()
+    request_id = f"req_{int(start_time)}"
     
     # Handle both prompt and messages formats
     if messages is None:
         if prompt is not None:
             messages = [{"role": "user", "content": prompt}]
         else:
-            raise ValueError("Either prompt or messages must be provided")
+            error_msg = "Either prompt or messages must be provided"
+            logger.error(f"[{request_id}] {error_msg}")
+            raise ValueError(error_msg)
+    
+    # Validate that messages are non-empty
+    for i, msg in enumerate(messages):
+        if not msg.get("content") or msg.get("content").strip() == "":
+            error_msg = f"Message at index {i} has empty content"
+            logger.error(f"[{request_id}] {error_msg}")
+            raise ValueError(error_msg)
     
     # For development/testing - use mock responses
     if USE_MOCK:
@@ -114,17 +166,41 @@ async def send_request(
     
     # Verify API key is available
     if not OPENROUTER_API_KEY:
-        logger.error("OpenRouter API key not found in environment variables")
-        return {
-            "error": "API key missing",
-            "message": "OPENROUTER_API_KEY environment variable is not set"
-        }
+        logger.error(f"[{request_id}] OpenRouter API key not found in environment variables")
+        raise AuthenticationError("OPENROUTER_API_KEY environment variable is not set")
     
-    # Prepare request headers
+    # Add jitter to avoid rate limits by ensuring minimum time between requests
+    # Calculate time since last request
+    now = time.time()
+    time_since_last_request = now - _last_request_time
+    
+    # We want at least 500ms between requests to avoid rate limiting
+    # Add some jitter (100-300ms) to avoid request patterns
+    if time_since_last_request < 0.5 and _last_request_time > 0:
+        delay_needed = 0.5 - time_since_last_request + uniform(0.1, 0.3)
+        logger.info(f"[{request_id}] Adding {delay_needed:.2f}s delay to avoid rate limits")
+        await asyncio.sleep(delay_needed)
+    
+    # Update last request time
+    _last_request_time = time.time()
+    
+    # Prepare request headers with a randomized user agent
+    user_agents = [
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Safari/605.1.15",
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.107 Safari/537.36"
+    ]
     headers = {
         "Authorization": f"Bearer {OPENROUTER_API_KEY}",
         "Content-Type": "application/json",
-        "HTTP-Referer": "https://bestroute.app"  # Replace with your actual domain
+        "HTTP-Referer": "https://bestroute.app",  # Replace with your actual domain
+        "User-Agent": user_agents[int(time.time()) % len(user_agents)]
+    }
+    
+    # Add a unique request ID to help with tracing
+    request_headers = {
+        **headers,
+        "X-Request-ID": request_id
     }
     
     # Prepare request payload
@@ -139,132 +215,203 @@ async def send_request(
     attempts = 0
     last_error = None
     
+    # Get shared HTTP client
+    client = await get_http_client()
+    
     # Retry loop
-    while attempts < retry_attempts:
+    while attempts <= retry_attempts:
         try:
-            logger.info(f"Sending request to OpenRouter API (attempt {attempts+1}/{retry_attempts})")
+            logger.info(f"[{request_id}] Sending request to OpenRouter API (attempt {attempts+1}/{retry_attempts+1})")
             
-            # Use httpx for async HTTP requests with timeout
-            async with httpx.AsyncClient(timeout=timeout) as client:
-                response = await client.post(
-                    OPENROUTER_API_URL,
-                    headers=headers,
-                    json=payload
-                )
+            response = await client.post(
+                OPENROUTER_API_URL,
+                headers=request_headers,
+                json=payload,
+                timeout=timeout
+            )
+            
+            # Check for HTTP errors
+            if response.status_code != 200:
+                error_message = f"OpenRouter API error: {response.status_code}"
+                error_data = {}
                 
-                # Check for HTTP errors
-                if response.status_code != 200:
-                    error_message = f"OpenRouter API error: {response.status_code}"
-                    try:
-                        error_data = response.json()
-                        error_message += f" - {json.dumps(error_data)}"
-                    except:
-                        error_message += f" - {response.text}"
-                    
-                    logger.error(error_message)
-                    
-                    # Determine if we should retry based on status code
-                    if response.status_code in [429, 500, 502, 503, 504]:
-                        attempts += 1
-                        if attempts < retry_attempts:
-                            logger.info(f"Retrying in {retry_delay} seconds...")
-                            await asyncio.sleep(retry_delay)
-                            continue
-                    
-                    # If we shouldn't retry or ran out of attempts
-                    return {
-                        "error": "API error",
-                        "message": error_message,
-                        "status_code": response.status_code
-                    }
-                
-                # Parse successful response
                 try:
-                    # Parse the JSON response
-                    response_data = json.loads(response.text)
+                    error_data = response.json()
+                    error_message += f" - {json.dumps(error_data)}"
+                except:
+                    error_message += f" - {response.text}"
+                
+                logger.error(f"[{request_id}] {error_message}")
+                
+                # Use our error classification to create the appropriate exception
+                api_error = classify_http_error(response.status_code, error_data)
+                
+                # Determine if we should retry based on error type
+                if isinstance(api_error, (NetworkError, RateLimitError)) and attempts < retry_attempts:
+                    attempts += 1
+                    # Add increasing delay with jitter for rate limits
+                    actual_delay = retry_delay * (attempts * BACKOFF_FACTOR) + uniform(0.1, 0.5)
+                    logger.info(f"[{request_id}] Retrying in {actual_delay:.2f} seconds...")
+                    await asyncio.sleep(actual_delay)
+                    continue
+                
+                # If we shouldn't retry or ran out of attempts, raise the error
+                raise api_error
+            
+            # Parse successful response
+            try:
+                # Parse the JSON response
+                response_data = json.loads(response.text)
+                
+                # Log full response in debug mode
+                if debug_mode:
+                    logger.info(f"[{request_id}] Full response: {json.dumps(response_data)}")
+                
+                # Extract the response text
+                response_text = ""
+                if "choices" in response_data and len(response_data["choices"]) > 0:
+                    if "message" in response_data["choices"][0]:
+                        response_text = response_data["choices"][0]["message"].get("content", "")
+                
+                # Check finish reason for better error handling
+                finish_reason = None
+                if "choices" in response_data and len(response_data["choices"]) > 0:
+                    finish_reason = response_data["choices"][0].get("finish_reason", None)
+                
+                # If we got an empty response, this is abnormal but we'll provide a message
+                if not response_text or response_text.strip() == "":
+                    logger.warning(f"[{request_id}] Received empty response text from model: {model}")
                     
-                    # Extract the response text
-                    response_text = ""
-                    if "choices" in response_data and len(response_data["choices"]) > 0:
-                        if "message" in response_data["choices"][0]:
-                            response_text = response_data["choices"][0]["message"].get("content", "")
+                    # Try to extract any useful information from the response for troubleshooting
+                    model_used = response_data.get("model", model)
+                    
+                    # Log detailed info about the empty response
+                    logger.error(f"[{request_id}] Empty response details - Model: {model_used}, " +
+                                f"Finish reason: {finish_reason}, " +
+                                f"Response structure: {json.dumps(response_data)[:200]}...")
+                    
+                    # Check if we should retry - retry if we have attempts left and either:
+                    # 1. Finish reason is 'length' (context length issue)
+                    # 2. Finish reason is 'content_filter' (content was filtered)
+                    if attempts < retry_attempts and finish_reason in ["length", "content_filter"]:
+                        attempts += 1
+                        logger.info(f"[{request_id}] Retrying due to {finish_reason} (attempt {attempts}/{retry_attempts})")
+                        await asyncio.sleep(retry_delay * attempts)
+                        continue
+                    
+                    # Detailed error message with troubleshooting information
+                    response_text = (
+                        f"The model returned an empty response. This could be due to content filtering, "
+                        f"rate limiting, or a temporary issue with the model. "
+                        f"Finish reason: {finish_reason}. "
+                        f"Try rephrasing your prompt or using a different model."
+                    )
+                
+                # Extract token usage information
+                usage = response_data.get("usage", {})
+                prompt_tokens = usage.get("prompt_tokens", 0)
+                completion_tokens = usage.get("completion_tokens", 0)
+                total_tokens = usage.get("total_tokens", 0)
+                
+                # Load config for pricing
+                try:
+                    with open("config.yaml", "r") as f:
+                        config = yaml.safe_load(f)
+                        model_info = config.get("models", {}).get(model, {})
+                        pricing = model_info.get("pricing", {})
+                        input_cost = pricing.get("input", 0.0)  # per 1K tokens
+                        output_cost = pricing.get("output", 0.0)  # per 1K tokens
                         
-                    # Extract token usage information
-                    usage = response_data.get("usage", {})
-                    prompt_tokens = usage.get("prompt_tokens", 0)
-                    completion_tokens = usage.get("completion_tokens", 0)
-                    total_tokens = usage.get("total_tokens", 0)
-                    
-                    # Load config for pricing
-                    try:
-                        with open("config.yaml", "r") as f:
-                            config = yaml.safe_load(f)
-                            model_info = config.get("models", {}).get(model, {})
-                            pricing = model_info.get("pricing", {})
-                            input_cost = pricing.get("input", 0.0)  # per 1K tokens
-                            output_cost = pricing.get("output", 0.0)  # per 1K tokens
-                            
-                            # Calculate total cost
-                            total_cost = (
-                                (prompt_tokens * input_cost / 1000) +
-                                (completion_tokens * output_cost / 1000)
-                            )
-                    except Exception as e:
-                        logger.error(f"Error loading pricing from config: {e}")
-                        total_cost = 0.0
-                    
-                    # Calculate total latency
-                    latency = time.time() - start_time
-                    
-                    # Prepare usage statistics
-                    usage_stats = {
-                        "prompt_tokens": prompt_tokens,
-                        "completion_tokens": completion_tokens,
-                        "total_tokens": total_tokens,
-                        "cost": total_cost
-                    }
-                    
-                    logger.info(f"Request successful: {model}, {total_tokens} tokens, ${total_cost:.6f}, {latency:.2f}s")
-                    
-                    # Return the response tuple
-                    return response_text, usage_stats, latency
-                    
+                        # Calculate total cost
+                        total_cost = (
+                            (prompt_tokens * input_cost / 1000) +
+                            (completion_tokens * output_cost / 1000)
+                        )
                 except Exception as e:
-                    logger.error(f"Error parsing API response: {e}")
-                    logger.error(f"Response content: {response.text}")
-                    
-                    # Try to extract just the content from the response
-                    try:
-                        if response.text:
+                    logger.error(f"[{request_id}] Error loading pricing from config: {e}")
+                    total_cost = 0.0
+                
+                # Calculate total latency
+                latency = time.time() - start_time
+                
+                # Prepare usage statistics
+                usage_stats = {
+                    "prompt_tokens": prompt_tokens,
+                    "completion_tokens": completion_tokens,
+                    "total_tokens": total_tokens,
+                    "cost": total_cost
+                }
+                
+                logger.info(f"[{request_id}] Request successful: {model}, {total_tokens} tokens, ${total_cost:.6f}, {latency:.2f}s")
+                
+                # Return the response tuple
+                return response_text, usage_stats, latency
+                
+            except Exception as e:
+                logger.error(f"[{request_id}] Error parsing API response: {e}")
+                logger.error(f"[{request_id}] Response content: {response.text}")
+                
+                # Try to extract just the content from the response
+                try:
+                    if response.text:
+                        # Try to parse as JSON first
+                        try:
+                            data = json.loads(response.text)
+                            if "choices" in data and len(data["choices"]) > 0:
+                                if "message" in data["choices"][0]:
+                                    response_text = data["choices"][0]["message"].get("content", "")
+                                    if response_text:
+                                        logger.info(f"[{request_id}] Successfully extracted text from partial response")
+                                        return response_text, {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0, "cost": 0}, time.time() - start_time
+                        except:
+                            # If not JSON, use the raw text
                             response_text = response.text
                             return response_text, {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0, "cost": 0}, time.time() - start_time
-                    except:
-                        pass
-                    
-                    raise
+                except:
+                    pass
                 
-        except Exception as e:
-            logger.error(f"Request failed: {str(e)}")
+                # If we couldn't extract anything useful, raise the original error
+                raise
+        
+        except (httpx.ConnectError, httpx.ReadTimeout, httpx.ConnectTimeout) as e:
+            # Network errors
+            logger.error(f"[{request_id}] Network error: {str(e)}")
+            last_error = NetworkError(f"Connection error: {str(e)}")
+        
+        except (APIError, NetworkError, AuthenticationError, RateLimitError, ModelError) as e:
+            # These are already our custom errors, so just log and possibly retry
+            logger.error(f"[{request_id}] API error: {str(e)}")
             last_error = e
-            
-            if attempts < retry_attempts - 1:
-                attempts += 1
-                logger.info(f"Retrying in {retry_delay} seconds...")
-                await asyncio.sleep(retry_delay)
-            else:
-                return {
-                    "error": "Max retries exceeded",
-                    "message": str(last_error)
-                }
+        
+        except Exception as e:
+            # Unexpected errors
+            logger.error(f"[{request_id}] Unexpected error: {str(e)}")
+            last_error = UnknownAPIError(f"Unexpected error: {str(e)}")
+        
+        # Increment attempts and retry
+        attempts += 1
+        if attempts <= retry_attempts:
+            logger.info(f"[{request_id}] Retrying in {retry_delay} seconds...")
+            await asyncio.sleep(retry_delay)
+        else:
+            # If we've exhausted all retries, return an error response
+            logger.error(f"[{request_id}] Max retries exceeded. Last error: {str(last_error)}")
+            return {
+                "error": "Max retries exceeded",
+                "message": str(last_error),
+                "status_code": getattr(last_error, "status_code", 500)
+            }
     
+    # This should never happen if the retry loop is working correctly
     return {
         "error": "Max retries exceeded",
-        "message": str(last_error)
+        "message": str(last_error) if last_error else "Unknown error",
+        "status_code": getattr(last_error, "status_code", 500)
     }
 
 async def _generate_mock_response(
     model: str, 
-    messages: List[Dict[str, str]], 
+    messages: List[Dict[str, Any]], 
     max_tokens: int,
     temperature: float
 ) -> Tuple[str, Dict[str, Any], float]:
@@ -464,3 +611,206 @@ This implementation uses a closure to maintain private state while exposing only
     logger.info(f"Generated mock response: {model}, {total_tokens} tokens, ${total_cost:.6f}, {latency:.2f}s")
     
     return response_text, usage_stats, latency 
+
+def send_openrouter_request(
+    prompt: str,
+    model: str = "anthropic/claude-3-haiku",
+    max_tokens: int = 1024,
+    temperature: float = 0.7
+) -> Tuple[str, Dict[str, Any], float]:
+    """
+    Simplified function to send a prompt to OpenRouter API and get response with metrics.
+    
+    Args:
+        prompt: The text prompt to send to the model
+        model: The model ID to use (e.g., "anthropic/claude-3-sonnet")
+        max_tokens: Maximum tokens in the response
+        temperature: Sampling temperature (0.0 to 1.0)
+        
+    Returns:
+        Tuple of (response_text, usage_stats, latency_seconds)
+        
+    Raises:
+        Exception: If the request fails or returns an error
+    """
+    logger.info(f"Sending prompt to OpenRouter API using model: {model}")
+    
+    # Create a simple message format
+    messages = [{"role": "user", "content": prompt}]
+    
+    # Call the main async function
+    try:
+        # Handle asyncio properly - check if we're in an event loop
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                # If we're already in an event loop, use it
+                response = loop.run_until_complete(send_request(
+                    model=model,
+                    messages=messages,
+                    max_tokens=max_tokens,
+                    temperature=temperature
+                ))
+            else:
+                # If no loop is running, create a new one
+                response = asyncio.run(send_request(
+                    model=model,
+                    messages=messages,
+                    max_tokens=max_tokens,
+                    temperature=temperature
+                ))
+        except RuntimeError:
+            # If we can't get a loop, create a new one
+            response = asyncio.run(send_request(
+                model=model,
+                messages=messages,
+                max_tokens=max_tokens,
+                temperature=temperature
+            ))
+        
+        # Check if we got an error dictionary
+        if isinstance(response, dict) and "error" in response:
+            error_msg = response.get("message", "Unknown error")
+            logger.error(f"OpenRouter API error: {error_msg}")
+            raise Exception(f"OpenRouter API request failed: {error_msg}")
+            
+        # Unpack the successful response tuple
+        response_text, usage_stats, latency = response
+        
+        logger.info(f"OpenRouter API request successful: {len(response_text)} chars, " +
+                   f"{usage_stats['total_tokens']} tokens, {latency:.2f}s")
+        
+        return response_text, usage_stats, latency
+        
+    except Exception as e:
+        logger.error(f"Error in send_openrouter_request: {str(e)}")
+        raise
+
+# Add this function near the end of the file, before test_openrouter()
+async def diagnose_empty_response(
+    model: str,
+    prompt: str,
+    max_tokens: int = 1024,
+    temperature: float = 0.7
+) -> Dict[str, Any]:
+    """
+    Run a diagnostic test on a prompt and model to analyze empty response issues.
+    
+    Args:
+        model: The model to test
+        prompt: The prompt to test
+        max_tokens: Maximum tokens to generate
+        temperature: Temperature setting
+        
+    Returns:
+        Dictionary with diagnostic results
+    """
+    logger.info(f"Running empty response diagnostic on model: {model}")
+    
+    start_time = time.time()
+    messages = [{"role": "user", "content": prompt}]
+    
+    try:
+        response = await send_request(
+            model=model,
+            messages=messages,
+            max_tokens=max_tokens,
+            temperature=temperature,
+            debug_mode=True  # Enable detailed debug information
+        )
+        
+        if isinstance(response, dict) and "error" in response:
+            return {
+                "success": False,
+                "model": model,
+                "error": response.get("message", "Unknown error"),
+                "status_code": response.get("status_code", 500),
+                "latency": time.time() - start_time
+            }
+        
+        response_text, usage_stats, latency = response
+        
+        # Check if response is empty
+        is_empty_response = not response_text or response_text.strip() == ""
+        
+        # Check if response contains an error message about empty responses
+        error_patterns = [
+            "empty response",
+            "no response", 
+            "content filtering",
+            "content policy",
+            "content moderation",
+            "rate limit",
+            "try again",
+            "not available"
+        ]
+        
+        contains_error_message = any(pattern in response_text.lower() for pattern in error_patterns)
+        
+        return {
+            "success": True,
+            "model": model,
+            "response_text": response_text,
+            "usage_stats": usage_stats,
+            "latency": latency,
+            "is_empty_response": is_empty_response,
+            "contains_error_message": contains_error_message,
+            "total_time": time.time() - start_time
+        }
+    
+    except Exception as e:
+        return {
+            "success": False,
+            "model": model,
+            "error": str(e),
+            "latency": time.time() - start_time
+        }
+
+# Add diagnostic command to the test function
+def test_openrouter():
+    """Test the OpenRouter API with a simple prompt"""
+    try:
+        # Regular test
+        response, usage, latency = send_openrouter_request(
+            prompt="What is the capital of France?",
+            model="anthropic/claude-3-haiku"
+        )
+        
+        print(f"Response: {response[:100]}...")
+        print(f"Tokens: {usage['total_tokens']} (prompt: {usage['prompt_tokens']}, completion: {usage['completion_tokens']})")
+        print(f"Cost: ${usage['cost']:.6f}")
+        print(f"Latency: {latency:.2f}s")
+        
+        # Adding empty response diagnosis if required
+        if "empty response" in response:
+            print("\nRunning diagnostic test for empty responses...")
+            
+            # Handle asyncio properly
+            try:
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    diagnostic = loop.run_until_complete(diagnose_empty_response(
+                        model="anthropic/claude-3-opus",
+                        prompt="Hello, how are you today?"
+                    ))
+                else:
+                    diagnostic = asyncio.run(diagnose_empty_response(
+                        model="anthropic/claude-3-opus",
+                        prompt="Hello, how are you today?"
+                    ))
+            except RuntimeError:
+                diagnostic = asyncio.run(diagnose_empty_response(
+                    model="anthropic/claude-3-opus",
+                    prompt="Hello, how are you today?"
+                ))
+                
+            print(f"Diagnostic results: {json.dumps(diagnostic, indent=2)}")
+        
+        return True
+    except Exception as e:
+        print(f"Test failed: {e}")
+        return False
+
+if __name__ == "__main__":
+    # If this file is run directly, test the OpenRouter API
+    test_openrouter() 

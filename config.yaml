@@ -227,3 +227,11 @@ routing_strategies:
   quality:
     description: "Optimizes for highest quality responses"
     default_model: "anthropic/claude-3-opus"
+
+# Classification settings
+classification:
+  use_gpt4_fallback: true # Whether to use GPT-4 as a fallback classifier
+  confidence_threshold: 2 # Minimum keyword matches for high confidence
+  fallback_model: "openai/gpt-4" # Model to use for classification
+  max_tokens_for_classification: 20 # Maximum tokens for classification responses
+  temperature_for_classification: 0.1 # Temperature for classification (low for consistency)

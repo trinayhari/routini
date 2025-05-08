@@ -39,7 +39,7 @@ def analyze_prompt(prompt: str) -> Dict[str, Any]:
     Returns:
         Dictionary with analysis results
     """
-    # Determine prompt type
+    # Determine prompt type using the improved classifier
     prompt_type = classify_prompt_type(prompt)
     
     # Estimate length
@@ -58,15 +58,28 @@ def analyze_prompt(prompt: str) -> Dict[str, Any]:
 
 def classify_prompt_type(prompt: str) -> str:
     """
-    Classify the prompt into a task type category
+    Classify the prompt into a task type category using patterns from config
     
     Args:
         prompt: The prompt text
         
     Returns:
-        Task type classification: "code", "summary", or "question"
+        Task type classification: "code", "creative", "analysis", "quick_questions", or "general"
     """
-    # Check for code-related patterns
+    # Get patterns from config
+    prompt_types = CONFIG.get("prompt_types", {})
+    
+    # Check prompt against each type's patterns
+    for prompt_type, type_config in prompt_types.items():
+        patterns = type_config.get("patterns", [])
+        for pattern in patterns:
+            if re.search(pattern, prompt, re.IGNORECASE):
+                logger.info(f"Classified prompt as {prompt_type} based on pattern match: {pattern}")
+                return prompt_type
+    
+    # If no pattern matched, use fallback classification with hardcoded patterns
+    
+    # Code patterns
     code_patterns = [
         r'```\w*',             # Code blocks
         r'function\s+\w+\s*\(', # Function declarations
@@ -78,26 +91,25 @@ def classify_prompt_type(prompt: str) -> str:
         r'<\w+>.*</\w+>'        # HTML/XML tags
     ]
     
-    # Check for summarization patterns
-    summary_patterns = [
-        r'\bsummarize\b', 
-        r'\bsummary\b', 
-        r'\btl;?dr\b',
-        r'\bcondense\b',
-        r'\bsynthesize\b'
-    ]
-    
-    # Check for each pattern
+    # Check for code patterns
     for pattern in code_patterns:
         if re.search(pattern, prompt, re.IGNORECASE):
             return "code"
-            
-    for pattern in summary_patterns:
-        if re.search(pattern, prompt, re.IGNORECASE):
-            return "summary"
     
-    # Default to question if no clear pattern match
-    return "question"
+    # Summary/analysis patterns
+    if any(keyword in prompt.lower() for keyword in ["summarize", "summary", "analyze", "explain", "compare"]):
+        return "analysis"
+        
+    # Creative patterns
+    if any(keyword in prompt.lower() for keyword in ["write", "create", "design", "generate", "story", "poem"]):
+        return "creative"
+        
+    # Check if it's a question
+    if prompt.strip().endswith("?") or prompt.lower().startswith(("what", "how", "why", "where", "when", "who", "can", "could")):
+        return "quick_questions"
+    
+    # Default to general if no match
+    return "general"
 
 def estimate_tokens(text: str) -> int:
     """
@@ -152,6 +164,7 @@ def extract_requested_model(prompt: str) -> Optional[str]:
     
     for pattern, model_id in model_mentions.items():
         if re.search(pattern, prompt, re.IGNORECASE):
+            logger.info(f"User explicitly requested model: {model_id}")
             return model_id
     
     return None
@@ -174,58 +187,91 @@ def select_model(
     Returns:
         Tuple of (model_id, reason)
     """
-    # Load configuration
-    CONFIG = load_config()
+    # Start processing time
+    logger.info(f"Selecting model for prompt with strategy: {strategy}")
     
-    # Get prompt type
-    prompt_type = classify_prompt_type(prompt)
+    # Check if user explicitly requested a model
+    requested_model = extract_requested_model(prompt)
+    if requested_model:
+        return requested_model, f"Selected {requested_model} as explicitly requested by user"
     
-    # Get token count
-    token_count = estimate_tokens(prompt)
+    # Analyze the prompt
+    analysis = analyze_prompt(prompt)
+    prompt_type = analysis["prompt_type"]
+    length_category = analysis["length_category"]
     
-    # Select model based on strategy
+    # Check for any strategy-specific default model in config
+    strategy_config = CONFIG.get("routing_strategies", {}).get(strategy, {})
+    strategy_default = strategy_config.get("default_model")
+    
+    # Try to use rule-based router from config
+    rule_based = CONFIG.get("rule_based_router", {})
+    
+    # Map our prompt types to the rule_based_router categories
+    rule_based_type = "question_models"  # Default
+    if prompt_type == "code":
+        rule_based_type = "code_models"
+    elif prompt_type in ["analysis", "summary"]:
+        rule_based_type = "summary_models"
+    elif prompt_type in ["creative", "quick_questions"]:
+        rule_based_type = "question_models"
+    
+    # Try to get the model from rule-based router based on prompt type and length
+    rule_based_models = rule_based.get(rule_based_type, {})
+    model_from_rules = rule_based_models.get(length_category)
+    
+    # Get preferred model from prompt type config
+    prompt_type_config = CONFIG.get("prompt_types", {}).get(prompt_type, {})
+    preferred_model = prompt_type_config.get("preferred_model")
+    
+    # Decision logic based on strategy
     if strategy == "cost":
-        # For cost optimization, use the cheapest model that can handle the task
-        if prompt_type == "code":
-            model_id = "openai/gpt-4"  # GPT-4 is best for coding
-        elif prompt_type == "summary":
-            model_id = "anthropic/claude-3-opus"  # Claude 3 Opus for analysis
-        elif prompt_type == "question":
-            model_id = "anthropic/claude-3-opus"  # Claude 3 Opus for creative tasks
-        else:
-            model_id = "openai/gpt-4"  # Default to GPT-4
-        reason = f"Selected {model_id} for cost optimization with {prompt_type} task"
+        # Prioritize cost - use rule-based recommendation first, then strategy default
+        model_id = model_from_rules or strategy_default or CONFIG.get("default_model", "anthropic/claude-3-haiku")
+        reason = f"Selected {model_id} for cost optimization with {prompt_type} task ({length_category} length)"
         
     elif strategy == "speed":
-        # For speed optimization, use the fastest model that can handle the task
-        if prompt_type == "code":
-            model_id = "openai/gpt-4"  # GPT-4 is best for coding
-        elif prompt_type == "summary":
-            model_id = "anthropic/claude-3-opus"  # Claude 3 Opus for analysis
-        elif prompt_type == "question":
-            model_id = "anthropic/claude-3-sonnet"  # Claude 3 Sonnet for creative tasks
+        # Prioritize speed - smaller/faster models
+        if prompt_type == "code" and length_category != "long":
+            model_id = "openai/gpt-4"  # Good balance for coding
+        elif length_category == "short":
+            model_id = "anthropic/claude-3-haiku"  # Fastest for short tasks
         else:
-            model_id = "openai/gpt-4"  # Default to GPT-4
-        reason = f"Selected {model_id} for speed optimization with {prompt_type} task"
+            model_id = model_from_rules or "anthropic/claude-3-sonnet"  # Good balance
+        reason = f"Selected {model_id} for speed optimization with {prompt_type} task ({length_category} length)"
+        
+    elif strategy == "quality":
+        # Prioritize quality - use the most capable models
+        if prompt_type == "code":
+            model_id = "openai/gpt-4"  # Best for code
+        else:
+            model_id = "anthropic/claude-3-opus"  # Best for most other tasks
+        reason = f"Selected {model_id} for quality optimization with {prompt_type} task"
         
     else:  # balanced strategy
-        # For balanced optimization, consider task type and complexity
-        if prompt_type == "code":
-            model_id = "openai/gpt-4"  # GPT-4 is best for coding
-        elif prompt_type == "summary":
-            model_id = "anthropic/claude-3-opus"  # Claude 3 Opus for analysis
-        elif prompt_type == "question":
-            model_id = "anthropic/claude-3-sonnet"  # Claude 3 Sonnet for creative tasks
-        else:
-            model_id = "openai/gpt-4"  # Default to GPT-4
-        reason = f"Selected {model_id} for balanced optimization with {prompt_type} task"
+        # For balanced, use rule-based router if available
+        model_id = model_from_rules or preferred_model
+        
+        # If still not set, use hardcoded defaults based on prompt type
+        if not model_id:
+            if prompt_type == "code":
+                model_id = "openai/gpt-4"  # Good for code
+            elif prompt_type == "analysis":
+                model_id = "anthropic/claude-3-opus"  # Good for analysis
+            elif prompt_type == "creative":
+                model_id = "anthropic/claude-3-sonnet"  # Good for creative
+            elif prompt_type == "quick_questions":
+                model_id = "anthropic/claude-3-haiku"  # Good for quick questions
+            else:
+                model_id = CONFIG.get("default_model", "anthropic/claude-3-haiku")
+                
+        reason = f"Selected {model_id} for balanced optimization with {prompt_type} task ({length_category} length)"
     
-    # Get default model from config
+    # Ensure model exists in config, otherwise fall back to default
     default_model = CONFIG.get("default_model", "anthropic/claude-3-haiku")
-    
-    # If selected model is not available, fall back to default
     if model_id not in CONFIG.get("models", {}):
         model_id = default_model
         reason = f"Selected model not available, falling back to default: {default_model}"
     
+    logger.info(f"Selected model: {model_id}, reason: {reason}")
     return model_id, reason 

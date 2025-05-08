@@ -1,0 +1,14 @@
+{
+  "timestamp": "2025-05-07T21:54:24.515751",
+  "prompt": "give me some meals from chennai",
+  "model_selected": "anthropic/claude-3-haiku",
+  "prompt_type": "general",
+  "length_category": "short",
+  "token_count": 7,
+  "strategy": "cost",
+  "user_requested": false,
+  "classification_details": {
+    "method": "default_no_api_key"
+  },
+  "selection_reason": "Selected anthropic/claude-3-haiku for cost optimization with general task (short length)"
+}

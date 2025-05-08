@@ -1,0 +1,16 @@
+{
+  "timestamp": "2025-05-07T21:54:42.306855",
+  "prompt": "what are some foods from chennai",
+  "model_selected": "anthropic/claude-3-haiku",
+  "prompt_type": "question",
+  "length_category": "short",
+  "token_count": 8,
+  "strategy": "cost",
+  "user_requested": false,
+  "classification_details": {
+    "method": "question_structure",
+    "is_question": true,
+    "confidence": "medium"
+  },
+  "selection_reason": "Selected anthropic/claude-3-haiku for cost optimization with question task (short length)"
+}

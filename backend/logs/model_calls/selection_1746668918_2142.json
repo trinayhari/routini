@@ -1,0 +1,16 @@
+{
+  "timestamp": "2025-05-07T21:48:38.946916",
+  "prompt": "what is a quick dish to make",
+  "model_selected": "anthropic/claude-3-haiku",
+  "prompt_type": "question",
+  "length_category": "short",
+  "token_count": 7,
+  "strategy": "cost",
+  "user_requested": false,
+  "classification_details": {
+    "method": "question_structure",
+    "is_question": true,
+    "confidence": "medium"
+  },
+  "selection_reason": "Selected anthropic/claude-3-haiku for cost optimization with question task (short length)"
+}

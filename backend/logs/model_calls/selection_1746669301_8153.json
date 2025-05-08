@@ -1,0 +1,14 @@
+{
+  "timestamp": "2025-05-07T21:55:01.189012",
+  "prompt": "give me code for fibbonaci sequence",
+  "model_selected": "anthropic/claude-3-sonnet",
+  "prompt_type": "general",
+  "length_category": "short",
+  "token_count": 8,
+  "strategy": "quality",
+  "user_requested": false,
+  "classification_details": {
+    "method": "default_no_api_key"
+  },
+  "selection_reason": "Selected anthropic/claude-3-sonnet for quality optimization with general task"
+}

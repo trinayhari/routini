@@ -51,8 +51,7 @@ export interface GenerateRequest {
 }
 
 export interface GenerateResponse {
-  text: string;
-  metadata: ModelMetadata;
+  message: ChatMessage;
 }
 
 // Compare models

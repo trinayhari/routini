@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'LLM Router',
+  title: 'Routini',
   description: 'Developer-focused LLM router for intelligent model selection',
 };
 

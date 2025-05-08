@@ -1,0 +1,16 @@
+{
+  "timestamp": "2025-05-07T22:06:18.492660",
+  "prompt": "what is the capital of India",
+  "model_selected": "anthropic/claude-3-haiku",
+  "prompt_type": "question",
+  "length_category": "short",
+  "token_count": 7,
+  "strategy": "balanced",
+  "user_requested": false,
+  "classification_details": {
+    "method": "question_structure",
+    "is_question": true,
+    "confidence": "medium"
+  },
+  "selection_reason": "Selected anthropic/claude-3-haiku for balanced performance with question task (short length)"
+}

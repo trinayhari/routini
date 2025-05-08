@@ -17,7 +17,7 @@ export function Navbar() {
           <nav className="flex items-center space-x-2">
             <Link href="/" className="hidden items-center space-x-2 md:flex">
               <span className="hidden text-xl font-bold sm:inline-block">
-                LLM Router
+                Routini
               </span>
             </Link>
             <div className="flex items-center space-x-1">

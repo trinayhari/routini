@@ -1,0 +1,16 @@
+{
+  "timestamp": "2025-05-07T22:02:14.501774",
+  "prompt": "what is the capital of france",
+  "model_selected": "anthropic/claude-3-sonnet",
+  "prompt_type": "question",
+  "length_category": "short",
+  "token_count": 7,
+  "strategy": "quality",
+  "user_requested": false,
+  "classification_details": {
+    "method": "question_structure",
+    "is_question": true,
+    "confidence": "medium"
+  },
+  "selection_reason": "Selected anthropic/claude-3-sonnet for quality optimization with question task"
+}

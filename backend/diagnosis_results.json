@@ -1,0 +1,56 @@
+{
+  "timestamp": "2025-05-07T21:35:02.845066",
+  "models_tested": 1,
+  "models": {
+    "anthropic/claude-3-opus": {
+      "model": "anthropic/claude-3-opus",
+      "successful_tests": 4,
+      "failed_tests": 0,
+      "empty_responses": 0,
+      "test_results": [
+        {
+          "prompt": "Hello, how are you today?",
+          "success": true,
+          "is_empty": false,
+          "contains_error_msg": false,
+          "response_length": 130,
+          "tokens": 50,
+          "latency": 4.144899129867554
+        },
+        {
+          "prompt": "What is 2+2?",
+          "success": true,
+          "is_empty": false,
+          "contains_error_msg": false,
+          "response_length": 10,
+          "tokens": 30,
+          "latency": 1.8101139068603516
+        },
+        {
+          "prompt": "Tell me about the solar system.",
+          "success": true,
+          "is_empty": false,
+          "contains_error_msg": false,
+          "response_length": 1714,
+          "tokens": 427,
+          "latency": 14.335155010223389
+        },
+        {
+          "prompt": "Write a short poem about cats.",
+          "success": true,
+          "is_empty": false,
+          "contains_error_msg": false,
+          "response_length": 262,
+          "tokens": 113,
+          "latency": 4.20384407043457
+        }
+      ]
+    }
+  },
+  "summary": {
+    "total_tests": 4,
+    "successful_tests": 4,
+    "failed_tests": 0,
+    "empty_responses": 0
+  }
+}
