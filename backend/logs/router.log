@@ -28,3 +28,25 @@
 2025-05-07 22:32:38,271 - rule_based_router - INFO - Low confidence in rule-based classification, using GPT-4 fallback
 2025-05-07 22:32:38,271 - rule_based_router - WARNING - OpenRouter API key not available. Cannot use GPT-4 fallback for classification.
 2025-05-07 22:33:04,826 - rule_based_router - INFO - Selecting model for prompt with strategy: quality
+2025-05-07 22:49:17,171 - rule_based_router - INFO - Selecting model for prompt with strategy: balanced
+2025-05-08 13:54:04,705 - rule_based_router - INFO - Selecting model for prompt with strategy: balanced
+2025-05-08 13:54:04,705 - rule_based_router - INFO - Low confidence in rule-based classification, using GPT-4 fallback
+2025-05-08 13:54:04,705 - rule_based_router - WARNING - OpenRouter API key not available. Cannot use GPT-4 fallback for classification.
+2025-05-08 13:54:20,428 - rule_based_router - INFO - Selecting model for prompt with strategy: balanced
+2025-05-08 13:56:14,216 - rule_based_router - INFO - Selecting model for prompt with strategy: balanced
+2025-05-08 13:56:14,217 - rule_based_router - INFO - Low confidence in rule-based classification, using GPT-4 fallback
+2025-05-08 13:56:14,217 - rule_based_router - WARNING - OpenRouter API key not available. Cannot use GPT-4 fallback for classification.
+2025-05-08 13:56:28,468 - rule_based_router - INFO - Selecting model for prompt with strategy: balanced
+2025-05-08 13:56:57,881 - rule_based_router - INFO - Selecting model for prompt with strategy: cost
+2025-05-08 13:56:57,881 - rule_based_router - INFO - Low confidence in rule-based classification, using GPT-4 fallback
+2025-05-08 13:56:57,881 - rule_based_router - WARNING - OpenRouter API key not available. Cannot use GPT-4 fallback for classification.
+2025-05-08 13:59:51,047 - rule_based_router - INFO - Selecting model for prompt with strategy: cost
+2025-05-08 13:59:51,048 - rule_based_router - INFO - Low confidence in rule-based classification, using GPT-4 fallback
+2025-05-08 13:59:51,048 - rule_based_router - WARNING - OpenRouter API key not available. Cannot use GPT-4 fallback for classification.
+2025-05-08 14:01:10,138 - rule_based_router - INFO - Selecting model for prompt with strategy: cost
+2025-05-08 14:01:39,397 - rule_based_router - INFO - Selecting model for prompt with strategy: cost
+2025-05-08 14:01:39,397 - rule_based_router - INFO - Low confidence in rule-based classification, using GPT-4 fallback
+2025-05-08 14:01:39,397 - rule_based_router - WARNING - OpenRouter API key not available. Cannot use GPT-4 fallback for classification.
+2025-05-08 14:02:10,212 - rule_based_router - INFO - Selecting model for prompt with strategy: quality
+2025-05-08 14:02:10,213 - rule_based_router - INFO - Low confidence in rule-based classification, using GPT-4 fallback
+2025-05-08 14:02:10,213 - rule_based_router - WARNING - OpenRouter API key not available. Cannot use GPT-4 fallback for classification.

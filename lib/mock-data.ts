@@ -8,27 +8,27 @@ import {
 
 // Sample model configurations
 export const MODELS = {
-  'gpt-4': { 
+  'openai/gpt-4': { 
     name: 'GPT-4',
     costPerToken: 0.00006,
     qualityScore: 0.95,
   },
-  'gpt-3.5-turbo': { 
+  'openai/gpt-3.5-turbo': { 
     name: 'GPT-3.5 Turbo',
     costPerToken: 0.000002,
     qualityScore: 0.82,
   },
-  'claude-2': { 
+  'anthropic/claude-2': { 
     name: 'Claude 2',
     costPerToken: 0.00008, 
     qualityScore: 0.93,
   },
-  'llama-2-70b': { 
+  'meta-llama/llama-2-70b': { 
     name: 'Llama 2 (70B)',
     costPerToken: 0.000008,
     qualityScore: 0.85,
   },
-  'mistral-7b': { 
+  'mistralai/mistral-7b': { 
     name: 'Mistral 7B',
     costPerToken: 0.000005,
     qualityScore: 0.78,
@@ -55,7 +55,7 @@ export const MOCK_MESSAGES: ChatMessage[] = [
       '\n\nThe router examines these factors and routes your query to the model that best balances performance and cost based on your selected strategy.',
     timestamp: new Date(Date.now() - 1000 * 60 * 4),
     metadata: {
-      model: 'gpt-3.5-turbo',
+      model: 'openai/gpt-3.5-turbo',
       latencyMs: 850,
       promptTokens: 12,
       completionTokens: 128,
@@ -93,7 +93,7 @@ export const MOCK_MESSAGES: ChatMessage[] = [
       '\n- Adaptable to evolving LLM ecosystem',
     timestamp: new Date(Date.now() - 1000 * 60 * 2),
     metadata: {
-      model: 'gpt-4',
+      model: 'openai/gpt-4',
       latencyMs: 2100,
       promptTokens: 18,
       completionTokens: 245,
@@ -108,7 +108,7 @@ export const MOCK_MESSAGES: ChatMessage[] = [
 export function createMockTrace(
   prompt: string, 
   strategy: RoutingStrategy,
-  selectedModel: string = 'gpt-3.5-turbo'
+  selectedModel: string = 'openai/gpt-3.5-turbo'
 ): RoutingTrace {
   const tokenEstimate = Math.floor(prompt.length / 4) + 10;
   
@@ -159,11 +159,11 @@ export function createMockTrace(
 
 // Generate metadata for a model response
 export function generateModelMetadata(
-  model: string, 
+  modelId: string,
   promptLength: number,
   responseLength: number
 ): ModelMetadata {
-  const modelInfo = MODELS[model as keyof typeof MODELS];
+  const modelInfo = MODELS[modelId as keyof typeof MODELS];
   const promptTokens = Math.floor(promptLength / 4) + 10;
   const completionTokens = Math.floor(responseLength / 4) + 20;
   const totalTokens = promptTokens + completionTokens;
@@ -173,42 +173,42 @@ export function generateModelMetadata(
   
   // Generate reasonable latency based on model and tokens
   let baseLatency = 500;
-  if (model === 'gpt-4') baseLatency = 1800;
-  else if (model === 'claude-2') baseLatency = 1500;
-  else if (model === 'llama-2-70b') baseLatency = 1200;
+  if (modelId === 'openai/gpt-4') baseLatency = 1800;
+  else if (modelId === 'anthropic/claude-2') baseLatency = 1500;
+  else if (modelId === 'meta-llama/llama-2-70b') baseLatency = 1200;
   
   const latencyMs = baseLatency + (totalTokens * 2) + (Math.random() * 500);
   
   return {
-    model,
+    model: modelId,
     latencyMs: Math.floor(latencyMs),
     promptTokens,
     completionTokens,
     totalTokens,
     cost,
-    routingRationale: `Selected based on ${model} capabilities for this query type`
+    routingRationale: `Selected based on ${modelId} capabilities for this query type`
   };
 }
 
 // Generate comparison results for the compare page
 export function generateComparisonData(prompt: string): ModelComparison[] {
-  const models = ['gpt-4', 'gpt-3.5-turbo', 'claude-2'];
+  const modelsToCompare = ['openai/gpt-4', 'openai/gpt-3.5-turbo', 'anthropic/claude-2'];
   
-  return models.map(model => {
+  return modelsToCompare.map(modelId => {
     // Generate different responses for each model
     let response = '';
-    if (model === 'gpt-4') {
-      response = `This is a comprehensive response from ${model} that demonstrates deep understanding and nuanced reasoning.\n\nThe output shows detailed analysis with multiple perspectives, well-structured argumentation, and accurate technical details where relevant.\n\nThe response quality justifies the higher cost and slightly increased latency compared to other models.`;
-    } else if (model === 'gpt-3.5-turbo') {
-      response = `This is a good response from ${model} that covers the main points efficiently.\n\nThe output is correct and helpful, though less detailed than GPT-4's response.\n\nThis model provides an excellent balance of cost and quality for most general-purpose queries.`;
+    if (modelId === 'openai/gpt-4') {
+      response = `This is a comprehensive response from ${modelId} that demonstrates deep understanding and nuanced reasoning.\n\nThe output shows detailed analysis with multiple perspectives, well-structured argumentation, and accurate technical details where relevant.\n\nThe response quality justifies the higher cost and slightly increased latency compared to other models.`;
+    } else if (modelId === 'openai/gpt-3.5-turbo') {
+      response = `This is a good response from ${modelId} that covers the main points efficiently.\n\nThe output is correct and helpful, though less detailed than GPT-4's response.\n\nThis model provides an excellent balance of cost and quality for most general-purpose queries.`;
     } else {
-      response = `This is an alternative perspective from ${model} with its own unique strengths.\n\nThe model shows particular capabilities in reasoning through problems step-by-step and handling certain specialized domains.\n\nThe response demonstrates how different architectures may have different performance characteristics on the same prompt.`;
+      response = `This is an alternative perspective from ${modelId} with its own unique strengths.\n\nThe model shows particular capabilities in reasoning through problems step-by-step and handling certain specialized domains.\n\nThe response demonstrates how different architectures may have different performance characteristics on the same prompt.`;
     }
     
     return {
-      model,
+      model: modelId,
       response,
-      metadata: generateModelMetadata(model, prompt.length, response.length)
+      metadata: generateModelMetadata(modelId, prompt.length, response.length)
     };
   });
 }

@@ -1,0 +1,16 @@
+{
+  "timestamp": "2025-05-08T13:56:28.468639",
+  "prompt": "what is the best coding IDE for AI vibe coders",
+  "model_selected": "anthropic/claude-3-haiku",
+  "prompt_type": "question",
+  "length_category": "short",
+  "token_count": 11,
+  "strategy": "balanced",
+  "user_requested": false,
+  "classification_details": {
+    "method": "question_structure",
+    "is_question": true,
+    "confidence": "medium"
+  },
+  "selection_reason": "Selected anthropic/claude-3-haiku for balanced performance with question task (short length)"
+}

@@ -1,18 +1,18 @@
-import { FC } from 'react';
-import { ResponseMetadata, RoutingTrace } from '@/types';
-import { 
+import { FC, useEffect, useState } from "react";
+import { ResponseMetadata, RoutingTrace } from "@/types";
+import {
   HoverCard,
   HoverCardContent,
-  HoverCardTrigger 
-} from '@/components/ui/hover-card';
+  HoverCardTrigger,
+} from "@/components/ui/hover-card";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from '@/components/ui/tooltip';
-import { Clock, Sparkles, Zap, Scale, Router, DollarSign } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
+} from "@/components/ui/tooltip";
+import { Clock, Sparkles, Zap, Scale, Router, DollarSign } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
 
 interface MessageMetadataProps {
   metadata: ResponseMetadata;
@@ -20,33 +20,49 @@ interface MessageMetadataProps {
   showTrace?: boolean;
 }
 
-export const MessageMetadata: FC<MessageMetadataProps> = ({ 
+export const MessageMetadata: FC<MessageMetadataProps> = ({
   metadata,
   trace,
-  showTrace = false
+  showTrace = false,
 }) => {
-  const formattedCost = new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
+  const formattedCost = new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
     minimumFractionDigits: 5,
-    maximumFractionDigits: 5
+    maximumFractionDigits: 5,
   }).format(metadata.cost);
-  
+
+  const [modelChanged, setModelChanged] = useState(false);
+
+  useEffect(() => {
+    if (metadata.model) {
+      setModelChanged(true);
+      const timer = setTimeout(() => setModelChanged(false), 500); // Duration of the animation
+      return () => clearTimeout(timer);
+    }
+  }, [metadata.model]);
+
   return (
     <div className="inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-xs bg-muted/30">
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger>
-            <span className="font-semibold">{metadata.model}</span>
+            <span
+              className={`font-semibold ${
+                modelChanged ? "animate-model-change" : ""
+              }`}
+            >
+              {metadata.model}
+            </span>
           </TooltipTrigger>
           <TooltipContent side="bottom">
             <p>Model: {metadata.model}</p>
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
-      
+
       <div className="h-3 w-[1px] bg-border"></div>
-      
+
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger className="inline-flex items-center">
@@ -58,9 +74,9 @@ export const MessageMetadata: FC<MessageMetadataProps> = ({
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
-      
+
       <div className="h-3 w-[1px] bg-border"></div>
-      
+
       <HoverCard>
         <HoverCardTrigger className="inline-flex items-center">
           <DollarSign className="h-3 w-3 mr-1" />
@@ -82,7 +98,7 @@ export const MessageMetadata: FC<MessageMetadataProps> = ({
           </div>
         </HoverCardContent>
       </HoverCard>
-      
+
       {metadata.routingRationale && (
         <>
           <div className="h-3 w-[1px] bg-border"></div>
@@ -98,7 +114,7 @@ export const MessageMetadata: FC<MessageMetadataProps> = ({
           </TooltipProvider>
         </>
       )}
-      
+
       {showTrace && trace && (
         <div className="mt-2 w-full">
           <div className="bg-muted/30 rounded-md p-3 text-xs font-mono overflow-x-auto">

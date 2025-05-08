@@ -1,0 +1,14 @@
+{
+  "timestamp": "2025-05-08T13:54:04.705533",
+  "prompt": "hi there",
+  "model_selected": "anthropic/claude-3-haiku",
+  "prompt_type": "general",
+  "length_category": "short",
+  "token_count": 2,
+  "strategy": "balanced",
+  "user_requested": false,
+  "classification_details": {
+    "method": "default_no_api_key"
+  },
+  "selection_reason": "Selected anthropic/claude-3-haiku for balanced performance with general task (short length)"
+}
