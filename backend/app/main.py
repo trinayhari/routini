@@ -10,6 +10,7 @@ import json
 from contextlib import asynccontextmanager
 
 from .routers import generate, compare
+from .utils.response_cache import CACHE_DIR, clear_expired_cache
 
 # Set up logging
 logging.basicConfig(
@@ -35,6 +36,18 @@ config = load_config()
 async def lifespan(app: FastAPI):
     # Startup: Load any resources or perform initialization
     logger.info("Starting AI Model Router API")
+    
+    # Create cache directory if it doesn't exist
+    try:
+        logger.info(f"Ensuring cache directory exists at: {CACHE_DIR}")
+        CACHE_DIR.mkdir(exist_ok=True)
+        
+        # Clear expired cache entries on startup
+        cleared = clear_expired_cache()
+        logger.info(f"Cleared {cleared} expired cache entries during startup")
+    except Exception as e:
+        logger.error(f"Error initializing cache: {e}")
+    
     yield
     # Shutdown: Close any resources or perform cleanup
     logger.info("Shutting down AI Model Router API")

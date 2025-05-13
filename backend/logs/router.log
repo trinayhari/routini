@@ -50,3 +50,9 @@
 2025-05-08 14:02:10,212 - rule_based_router - INFO - Selecting model for prompt with strategy: quality
 2025-05-08 14:02:10,213 - rule_based_router - INFO - Low confidence in rule-based classification, using GPT-4 fallback
 2025-05-08 14:02:10,213 - rule_based_router - WARNING - OpenRouter API key not available. Cannot use GPT-4 fallback for classification.
+2025-05-09 11:03:09,021 - rule_based_router - INFO - Selecting model for prompt with strategy: balanced
+2025-05-09 11:03:09,021 - rule_based_router - INFO - Low confidence in rule-based classification, using GPT-4 fallback
+2025-05-09 11:03:09,021 - rule_based_router - WARNING - OpenRouter API key not available. Cannot use GPT-4 fallback for classification.
+2025-05-12 22:12:39,709 - rule_based_router - INFO - Selecting model for prompt with strategy: balanced
+2025-05-12 22:12:39,710 - rule_based_router - INFO - Low confidence in rule-based classification, using GPT-4 fallback
+2025-05-12 22:12:39,710 - rule_based_router - WARNING - OpenRouter API key not available. Cannot use GPT-4 fallback for classification.
