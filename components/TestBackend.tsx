@@ -149,11 +149,17 @@ export default function TestBackend() {
                   </div>
                   <div className="grid grid-cols-2 gap-2 border-b pb-2">
                     <span className="font-medium">Tokens:</span>
-                    <span>
-                      {result.message.metadata.totalTokens} (
-                      {result.message.metadata.promptTokens} prompt +{" "}
-                      {result.message.metadata.completionTokens} completion)
+                    <span>{result.message.metadata.totalTokens}</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 border-b pb-2 text-sm pl-6">
+                    <span className="text-muted-foreground">Input Tokens:</span>
+                    <span>{result.message.metadata.promptTokens}</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 border-b pb-2 text-sm pl-6">
+                    <span className="text-muted-foreground">
+                      Output Tokens:
                     </span>
+                    <span>{result.message.metadata.completionTokens}</span>
                   </div>
                   <div className="mt-2">
                     <span className="font-medium block mb-1">

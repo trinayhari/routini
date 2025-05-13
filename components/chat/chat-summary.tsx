@@ -29,6 +29,22 @@ export function ChatSummary({ messages }: ChatSummaryProps) {
     return sum;
   }, 0);
 
+  // Calculate total input tokens
+  const totalPromptTokens = messages.reduce((sum, msg) => {
+    if (msg.metadata?.promptTokens) {
+      return sum + msg.metadata.promptTokens;
+    }
+    return sum;
+  }, 0);
+
+  // Calculate total output tokens
+  const totalCompletionTokens = messages.reduce((sum, msg) => {
+    if (msg.metadata?.completionTokens) {
+      return sum + msg.metadata.completionTokens;
+    }
+    return sum;
+  }, 0);
+
   // Get unique prompts (user messages)
   const uniquePrompts = messages
     .filter((msg) => msg.role === "user")
@@ -45,12 +61,24 @@ export function ChatSummary({ messages }: ChatSummaryProps) {
           </div>
           <span className="font-medium">${totalCost.toFixed(6)}</span>
         </div>
-        <div className="flex items-center justify-between text-sm">
-          <div className="flex items-center gap-2">
-            <Hash className="h-4 w-4 text-muted-foreground" />
-            <span>Total Tokens</span>
+        <div className="flex flex-col space-y-1">
+          <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center gap-2">
+              <Hash className="h-4 w-4 text-muted-foreground" />
+              <span>Total Tokens</span>
+            </div>
+            <span className="font-medium">{totalTokens.toLocaleString()}</span>
           </div>
-          <span className="font-medium">{totalTokens.toLocaleString()}</span>
+          <div className="text-xs text-muted-foreground pl-6">
+            <div className="flex justify-between">
+              <span>Input:</span>
+              <span>{totalPromptTokens.toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Output:</span>
+              <span>{totalCompletionTokens.toLocaleString()}</span>
+            </div>
+          </div>
         </div>
         <div className="flex items-center justify-between text-sm">
           <div className="flex items-center gap-2">
