@@ -1,0 +1,21 @@
+{
+  "timestamp": "2025-05-16T19:19:58.142046",
+  "prompt": "write code to tie my shoe in python",
+  "model_selected": "openai/gpt-4",
+  "prompt_type": "code",
+  "length_category": "short",
+  "token_count": 8,
+  "strategy": "quality",
+  "user_requested": false,
+  "classification_details": {
+    "method": "keyword",
+    "matches": {
+      "code": 2,
+      "summary": 0,
+      "analysis": 0,
+      "creative": 1
+    },
+    "confidence": "high"
+  },
+  "selection_reason": "Selected openai/gpt-4 for quality optimization with code task"
+}

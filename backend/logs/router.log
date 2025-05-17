@@ -56,3 +56,7 @@
 2025-05-12 22:12:39,709 - rule_based_router - INFO - Selecting model for prompt with strategy: balanced
 2025-05-12 22:12:39,710 - rule_based_router - INFO - Low confidence in rule-based classification, using GPT-4 fallback
 2025-05-12 22:12:39,710 - rule_based_router - WARNING - OpenRouter API key not available. Cannot use GPT-4 fallback for classification.
+2025-05-16 19:12:46,647 - rule_based_router - INFO - Selecting model for prompt with strategy: cost
+2025-05-16 19:19:23,024 - rule_based_router - INFO - Selecting model for prompt with strategy: cost
+2025-05-16 19:19:58,141 - rule_based_router - INFO - Selecting model for prompt with strategy: quality
+2025-05-16 19:20:56,977 - rule_based_router - INFO - Selecting model for prompt with strategy: cost

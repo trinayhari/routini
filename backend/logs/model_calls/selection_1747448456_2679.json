@@ -1,0 +1,21 @@
+{
+  "timestamp": "2025-05-16T19:20:56.978094",
+  "prompt": "write java code to do the same",
+  "model_selected": "anthropic/claude-3-haiku",
+  "prompt_type": "code",
+  "length_category": "short",
+  "token_count": 7,
+  "strategy": "cost",
+  "user_requested": false,
+  "classification_details": {
+    "method": "keyword",
+    "matches": {
+      "code": 2,
+      "summary": 0,
+      "analysis": 0,
+      "creative": 1
+    },
+    "confidence": "high"
+  },
+  "selection_reason": "Selected anthropic/claude-3-haiku for cost optimization with code task (short length)"
+}
